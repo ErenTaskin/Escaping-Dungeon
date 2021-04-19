@@ -19,6 +19,12 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+	void OpenDoor(float DeltaTime);
+	void CloseDoor(float DeltaTime);
+	void FindAudioComponent(); 
+	void FindVolume();
+	// float TotalMassOfActors() const;
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -27,12 +33,13 @@ private:
 	float InitialYaw;
 	float CurrentYaw;
 	float DoorLastOpened = 0.f;
+	bool SoundPlayed;
 
 	UPROPERTY(EditAnywhere)
-		ATriggerVolume* Volume;
-
+		ATriggerVolume* Volume = nullptr;
+	
 	UPROPERTY(EditAnywhere)
-		AActor* Trigger;
+		AActor* ActorThatOpens = nullptr;
 
 	UPROPERTY(EditAnywhere)
 		float OpenAngle = -90.f;
@@ -46,6 +53,6 @@ private:
 	UPROPERTY(EditAnywhere)
 		float DoorCloseDelay = 0.5f;
 
-	void OpenDoor(float DeltaTime);
-	void CloseDoor(float DeltaTime);
+	UPROPERTY()
+	UAudioComponent* AudioComponent = nullptr;
 };
