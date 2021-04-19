@@ -1,9 +1,13 @@
 // Eren Taskin 2021
 
 #include "OpenDoor.h"
+#include "Components/AudioComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/PlayerController.h"
-#include "Engine/World.h"
+
+#define OUT
 
 // Sets default values for this component's properties
 UOpenDoor::UOpenDoor()
@@ -20,14 +24,10 @@ void UOpenDoor::BeginPlay()
 
 	InitialYaw = GetOwner()->GetActorRotation().Yaw;
 	CurrentYaw = InitialYaw;
-	OpenAngle += CurrentYaw;
+	OpenAngle += InitialYaw;
 
-	if (!Trigger)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s has the open door component on it, but no pressure plate set."), *GetOwner()->GetName());
-	}
-
-	Trigger = GetWorld()->GetFirstPlayerController()->GetPawn();
+	FindAudioComponent();
+	FindVolume();
 }
 
 // Called every frame
@@ -35,16 +35,16 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (Volume && Volume->IsOverlappingActor(Trigger))
+	if	(Volume && Volume->IsOverlappingActor(ActorThatOpens))
 	{
 		OpenDoor(DeltaTime);
 		DoorLastOpened = GetWorld()->GetTimeSeconds();
 	}
 	else
-	{	
+	{
 		if (GetWorld()->GetTimeSeconds() - DoorLastOpened > DoorCloseDelay)
 		{
-			CloseDoor(DeltaTime);
+		CloseDoor(DeltaTime);
 		}
 	}
 }
@@ -55,6 +55,12 @@ void UOpenDoor::OpenDoor(float DeltaTime)
 	FRotator DoorRotation = GetOwner()->GetActorRotation();
 	DoorRotation.Yaw = CurrentYaw;
 	GetOwner()->SetActorRotation(DoorRotation);
+
+	if (SoundPlayed == 0)
+	{
+		AudioComponent->Play();
+		SoundPlayed = 1;
+	}
 }
 
 void UOpenDoor::CloseDoor(float DeltaTime)
@@ -63,4 +69,27 @@ void UOpenDoor::CloseDoor(float DeltaTime)
 	FRotator DoorRotation = GetOwner()->GetActorRotation();
 	DoorRotation.Yaw = CurrentYaw;
 	GetOwner()->SetActorRotation(DoorRotation);
+
+	if (SoundPlayed == 1)
+	{
+		AudioComponent->Play();
+		SoundPlayed = 0;
+	}
+}
+
+void UOpenDoor::FindAudioComponent()
+{
+	AudioComponent = GetOwner()->FindComponentByClass<UAudioComponent>();
+	if (!AudioComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("There is no audio component in %s."), *GetOwner()->GetName());
+	}
+}
+
+void UOpenDoor::FindVolume()
+{
+	if (!Volume)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s do not have volume set in it."), *GetOwner()->GetName());
+	}
 }
