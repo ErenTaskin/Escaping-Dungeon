@@ -26,12 +26,22 @@ protected:
 private:
 	float Reach = 200.f;
 
+	UPROPERTY()
 	UPhysicsHandleComponent* PhysicsHandle = nullptr;
+	UPROPERTY()
 	UInputComponent* InputComponent = nullptr;
 
 	void Grab();
 	void Release();
 	void CheckPhysicsHandle();
 	void SetupInputComponent();
+
+	// Returning intersected actor.
 	FHitResult GetObjectInReach();
+
+	// Returning player view point.
+	FVector PlayerViewPoint();
+
+	// Returning player view point location.
+	FVector PlayerViewPointLocation();
 };
