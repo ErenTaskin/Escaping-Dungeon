@@ -28,19 +28,8 @@ void UGrabbingPhysics::BeginPlay()
 void UGrabbingPhysics::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	FVector PlayerViewPointLocation;
-	FRotator PlayerViewPointRotation;
-
-	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint
-	(
-		OUT PlayerViewPointLocation,
-		OUT PlayerViewPointRotation
-	);
-
-	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
-
-	PhysicsHandle->SetTargetLocation(LineTraceEnd);
+	CheckPhysicsHandle();
+	PhysicsHandle->SetTargetLocation(PlayerViewPoint());
 }
 
 void UGrabbingPhysics::CheckPhysicsHandle()
@@ -49,6 +38,7 @@ void UGrabbingPhysics::CheckPhysicsHandle()
 	if (!PhysicsHandle)
 	{
 		UE_LOG(LogTemp, Error, TEXT("The %s do not have any \"PhysicsHandleComponent\" in it. Add PhysicsHandleComponent."), *GetOwner()->GetName());
+		return;
 	};
 }
 
@@ -60,74 +50,46 @@ void UGrabbingPhysics::SetupInputComponent()
 		InputComponent->BindAction("Grab", IE_Pressed, this, &UGrabbingPhysics::Grab);
 		InputComponent->BindAction("Grab", IE_Released, this, &UGrabbingPhysics::Release);
 	}
+	else if (!InputComponent)
+	{
+		return;
+	}
 }
 
 void UGrabbingPhysics::Grab()
 {
-	FVector PlayerViewPointLocation;
-	FRotator PlayerViewPointRotation;
-
-	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint
-	(
-		OUT PlayerViewPointLocation,
-		OUT PlayerViewPointRotation
-	);
-
-	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
-	FHitResult Hit;
-	FCollisionQueryParams TraceParams(FName(TEXT("")), false, GetOwner());
-
-	GetWorld()->LineTraceSingleByObjectType
-	(
-		OUT Hit,
-		PlayerViewPointLocation,
-		LineTraceEnd,
-		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
-		TraceParams
-	);
-
-	FHitResult HitResult = UGrabbingPhysics::GetObjectInReach();
-	UE_LOG(LogTemp, Warning, TEXT("Grabber is pressed."));
-	UPrimitiveComponent* ComponentToGrab = HitResult.GetComponent();
-	if (HitResult.GetActor())
+	UPrimitiveComponent* ComponentToGrab = GetObjectInReach().GetComponent();
+	if (GetObjectInReach().GetActor())
 	{
+		CheckPhysicsHandle();
 		PhysicsHandle->GrabComponentAtLocation
-		(
+		(			
 			ComponentToGrab,
 			NAME_None,
-			LineTraceEnd
+			PlayerViewPoint()
 		);
 	}
 }
 
 void UGrabbingPhysics::Release()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Grabber is released."));
+	CheckPhysicsHandle();
 	PhysicsHandle->ReleaseComponent();
 }
 
 FHitResult UGrabbingPhysics::GetObjectInReach()
 {
-	// Get player viewport
-	FVector PlayerViewPointLocation;
-	FRotator PlayerViewPointRotation;
-
-	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint
-	(
-		OUT PlayerViewPointLocation,
-		OUT PlayerViewPointRotation
-	);
+	UGrabbingPhysics::PlayerViewPoint();
 
 	// Getting the intersection with physics objects
-	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
-	FHitResult Hit;
 	FCollisionQueryParams TraceParams(FName(TEXT("")), false, GetOwner());
 
+	FHitResult Hit;
 	GetWorld()->LineTraceSingleByObjectType
 	(
 		OUT Hit,
-		PlayerViewPointLocation,
-		LineTraceEnd,
+		PlayerViewPointLocation(),
+		PlayerViewPoint(),
 		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
 		TraceParams
 	);
@@ -140,3 +102,31 @@ FHitResult UGrabbingPhysics::GetObjectInReach()
 
 	return Hit;
 };
+
+FVector UGrabbingPhysics::PlayerViewPoint()
+{
+	FVector PlayerViewPointLocation;
+	FRotator PlayerViewPointRotation;
+
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint
+	(
+		OUT PlayerViewPointLocation,
+		OUT PlayerViewPointRotation
+	);
+
+	return PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
+}
+
+FVector UGrabbingPhysics::PlayerViewPointLocation()
+{
+	FVector PlayerViewPointLocation;
+	FRotator PlayerViewPointRotation;
+
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint
+	(
+		OUT PlayerViewPointLocation,
+		OUT PlayerViewPointRotation
+	);
+
+	return PlayerViewPointLocation;
+}
